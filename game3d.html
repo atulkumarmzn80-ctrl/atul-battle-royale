@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Atul Battle Royale 3D</title>
+<style>
+body{margin:0;overflow:hidden;background:#87ceeb;font-family:Arial}
+#info{position:fixed;top:12px;left:12px;color:white;background:#102030cc;padding:12px;border-radius:10px;z-index:2}
+</style>
+</head>
+<body>
+<div id="info">ATUL BATTLE ROYALE 3D<br>लोड हो रहा है...</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 35, 180);
+
+const camera = new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.1,500);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x667744,2));
+const sun = new THREE.DirectionalLight(0xffffff,3);
+sun.position.set(30,50,20);
+sun.castShadow=true;
+scene.add(sun);
+
+const ground = new THREE.Mesh(
+ new THREE.PlaneGeometry(300,300),
+ new THREE.MeshStandardMaterial({color:0x66894a})
+);
+ground.rotation.x=-Math.PI/2;
+ground.receiveShadow=true;
+scene.add(ground);
+
+const soldier = new THREE.Group();
+function part(geo,color,x,y,z){
+ const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color}));
+ m.position.set(x,y,z);m.castShadow=true;soldier.add(m);return m;
+}
+part(new THREE.CapsuleGeometry(0.42,0.75,4,8),0x354936,0,1.35,0);
+part(new THREE.SphereGeometry(0.28,16,12),0xc69b76,0,2.05,0);
+part(new THREE.SphereGeometry(0.31,16,12),0x252b2b,0,2.20,0);
+part(new THREE.BoxGeometry(0.18,0.75,0.18),0x29352c,-0.23,0.42,0);
+part(new THREE.BoxGeometry(0.18,0.75,0.18),0x29352c,0.23,0.42,0);
+part(new THREE.BoxGeometry(0.15,0.7,0.15),0xc69b76,-0.48,1.4,-0.08);
+part(new THREE.BoxGeometry(0.15,0.7,0.15),0xc69b76,0.48,1.4,-0.08);
+part(new THREE.BoxGeometry(0.14,0.14,1.1),0x222222,0.35,1.4,-0.65);
+scene.add(soldier);
+
+for(let i=0;i<45;i++){
+ const h=2+Math.random()*5;
+ const tree=new THREE.Group();
+ const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.18,.25,h*.45,7),
+ new THREE.MeshStandardMaterial({color:0x65452b}));
+ trunk.position.y=h*.225;tree.add(trunk);
+ const leaves=new THREE.Mesh(new THREE.ConeGeometry(1.2,h*.55,8),
+ new THREE.MeshStandardMaterial({color:0x28552b}));
+ leaves.position.y=h*.65;tree.add(leaves);
+ const a=Math.random()*Math.PI*2,r=18+Math.random()*100;
+ tree.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+ scene.add(tree);
+}
+
+camera.position.set(0,4,7);
+camera.lookAt(0,1,0);
+function animate(){
+ requestAnimationFrame(animate);
+ camera.position.lerp(new THREE.Vector3(
+ soldier.position.x, soldier.position.y+4, soldier.position.z+7),0.08);
+ camera.lookAt(soldier.position.x,1.2,soldier.position.z);
+ renderer.render(scene,camera);
+}
+animate();
+
+addEventListener('resize',()=>{
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+});
+document.getElementById('info').innerHTML='ATUL BATTLE ROYALE 3D<br>3D डेमो चालू है';
+</script>
+</body>
+</html>
