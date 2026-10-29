@@ -24,9 +24,9 @@ canvas{display:block}
   <span id="status">3D गेम तैयार हो रहा है...</span><br>
   <span id="hint">Joystick: चलो | दाईं तरफ खींचो: कैमरा घुमाओ</span>
 </div>
-<div id="joystick"><div id="stick"></div></div>
-<div id="look"></div>
 <div id="lookLabel">कैमरा घुमाने के लिए यहाँ खींचें</div>
+
+<button id="fireBtn" style="position:fixed;right:25px;bottom:35px;width:85px;height:85px;border-radius:50%;background:red;color:white;font-size:20px;font-weight:bold;border:3px solid white;z-index:99999;">FIRE</button>
 
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
@@ -381,7 +381,7 @@ fireBtn.addEventListener("pointerdown", (event) => {playGunshot();
   }
 });
 
-<button id="fireBtn" style="position:fixed;right:25px;bottom:35px;width:85px;height:85px;border-radius:50%;background:red;color:white;font-size:20px;font-weight:bold;border:3px solid white;z-index:99999;">FIRE</button>
+
 
 </body>
 </html>
