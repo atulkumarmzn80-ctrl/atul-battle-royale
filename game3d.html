@@ -313,6 +313,34 @@ async function enableLandscape() {
 }
 
 document.addEventListener("pointerdown", enableLandscape, { once: true });
+// Mobile FIRE button shooting
+const fireBtn = document.getElementById("fireBtn");
+
+fireBtn.addEventListener("pointerdown", (event) => {
+  event.preventDefault();
+
+  if (enemyBots.length === 0) return;
+
+  let nearestBot = null;
+  let nearestDistance = Infinity;
+
+  enemyBots.forEach((bot) => {
+    const distance = bot.position.distanceTo(
+      camera.position
+    );
+
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestBot = bot;
+    }
+  });
+
+  if (nearestBot && nearestDistance < 30) {
+    scene.remove(nearestBot);
+    enemyBots.splice(enemyBots.indexOf(nearestBot), 1);
+  }
+});
 </script>
+Add enemy bots to 3D game
 </body>
 </html>
