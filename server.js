@@ -82,10 +82,43 @@ wss.on('connection', ws => {
       const room=rooms.get(ws.roomCode); if(!room)return;
       const p=room.players.get(id); if(!p)return;
       if(d.type==='state') {
-        p.state={name:String(d.name||'Player').slice(0,16),x:Number(d.x)||0,z:Number(d.z)||0,yaw:Number(d.yaw)||0,hp:Math.max(0,Math.min(100,Number(d.hp)||100))};
+        p.state = {
+  name: String(d.name || 'Player').slice(0, 16),
+  x: Number(d.x) || 0,
+  z: Number(d.z) || 0,
+  yaw: Number(d.yaw) || 0,
+  hp: p.state.hp
+};
         broadcast(room);
-      } else if(d.type==='fire') {
-        for (const [otherId, other] of room.players) if (otherId!==id) send(other.ws,{type:'tagged',from:id});
+     } else if (d.type === 'fire') {
+  const angle = Number(d.yaw);
+  if (!Number.isFinite(angle)) return;
+
+  const sx = Number(p.state.x) * 4000;
+  const sz = Number(p.state.z) * 4000;
+  const range = 1200;
+  const hitRadius = 65;
+
+  for (const [otherId, other] of room.players) {
+    if (otherId === id || other.state.hp <= 0) continue;
+
+    const tx = Number(other.state.x) * 4000;
+    const tz = Number(other.state.z) * 4000;
+    const dx = tx - sx;
+    const dz = tz - sz;
+
+    const along = dx * Math.cos(angle) + dz * Math.sin(angle);
+    const across = Math.abs(-dx * Math.sin(angle) + dz * Math.cos(angle));
+
+    if (along >= 0 && along <= range && across <= hitRadius) {
+      other.state.hp = Math.max(0, other.state.hp - 25);
+      send(other.ws, {type:'tagged', from:id, hp:other.state.hp});
+      send(ws, {type:'hit', target:otherId, hp:other.state.hp});
+    }
+  }
+
+  broadcast(room);
+} );
       }
     }
   });
