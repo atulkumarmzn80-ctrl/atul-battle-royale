@@ -3,89 +3,277 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Atul Battle Royale 3D</title>
 <style>
-body{margin:0;overflow:hidden;background:#87ceeb;font-family:Arial}
-#info{position:fixed;top:12px;left:12px;color:white;background:#102030cc;padding:12px;border-radius:10px;z-index:2}
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#87ceeb;font-family:Arial,sans-serif;touch-action:none}
+canvas{display:block}
+#hud{position:fixed;top:12px;left:12px;color:white;background:#101820c9;padding:12px 15px;border:1px solid #ffffff55;border-radius:12px;z-index:2;line-height:1.6}
+#hint{font-size:12px;color:#d7edff}
+#joystick{position:fixed;left:25px;bottom:30px;width:140px;height:140px;border-radius:50%;background:#ffffff24;border:2px solid #ffffff99;z-index:3;touch-action:none}
+#stick{position:absolute;left:39px;top:39px;width:58px;height:58px;border-radius:50%;background:#ffffffb8;border:2px solid white;box-shadow:0 2px 10px #0005;pointer-events:none}
+#look{position:fixed;right:0;bottom:0;width:48%;height:55%;z-index:1;touch-action:none}
+#lookLabel{position:fixed;right:18px;bottom:20px;color:white;background:#1118;padding:8px 12px;border-radius:12px;pointer-events:none;z-index:2;font-size:12px}
+@media(max-height:500px){#joystick{width:110px;height:110px;bottom:15px}#stick{left:29px;top:29px;width:48px;height:48px}}
 </style>
 </head>
 <body>
-<div id="info">ATUL BATTLE ROYALE 3D<br>लोड हो रहा है...</div>
+<div id="hud">
+  <b>ATUL BATTLE ROYALE 3D</b><br>
+  <span id="status">3D गेम तैयार हो रहा है...</span><br>
+  <span id="hint">Joystick: चलो | दाईं तरफ खींचो: कैमरा घुमाओ</span>
+</div>
+<div id="joystick"><div id="stick"></div></div>
+<div id="look"></div>
+<div id="lookLabel">कैमरा घुमाने के लिए यहाँ खींचें</div>
+
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 35, 180);
+scene.background = new THREE.Color(0x8dc9f0);
+scene.fog = new THREE.Fog(0x8dc9f0, 70, 220);
 
-const camera = new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.1,500);
+const camera = new THREE.PerspectiveCamera(65, innerWidth/innerHeight, 0.1, 500);
 const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth,innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xffffff,0x667744,2));
-const sun = new THREE.DirectionalLight(0xffffff,3);
-sun.position.set(30,50,20);
-sun.castShadow=true;
+scene.add(new THREE.HemisphereLight(0xe5f4ff, 0x65734c, 2));
+
+const sun = new THREE.DirectionalLight(0xfff0d4, 3);
+sun.position.set(35,60,25);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024,1024);
 scene.add(sun);
 
 const ground = new THREE.Mesh(
- new THREE.PlaneGeometry(300,300),
- new THREE.MeshStandardMaterial({color:0x66894a})
+  new THREE.PlaneGeometry(500,500),
+  new THREE.MeshStandardMaterial({color:0x668747,roughness:1})
 );
-ground.rotation.x=-Math.PI/2;
-ground.receiveShadow=true;
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
 scene.add(ground);
 
-const soldier = new THREE.Group();
-function part(geo,color,x,y,z){
- const m=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color}));
- m.position.set(x,y,z);m.castShadow=true;soldier.add(m);return m;
+// छोटे घास के रंगीन पैच
+for(let i=0;i<100;i++){
+  const patch = new THREE.Mesh(
+    new THREE.CircleGeometry(1+Math.random()*3,8),
+    new THREE.MeshStandardMaterial({color:i%2?0x78964a:0x58753c,roughness:1})
+  );
+  patch.rotation.x=-Math.PI/2;
+  patch.position.set((Math.random()-.5)*180,.015,(Math.random()-.5)*180);
+  scene.add(patch);
 }
-part(new THREE.CapsuleGeometry(0.42,0.75,4,8),0x354936,0,1.35,0);
-part(new THREE.SphereGeometry(0.28,16,12),0xc69b76,0,2.05,0);
-part(new THREE.SphereGeometry(0.31,16,12),0x252b2b,0,2.20,0);
-part(new THREE.BoxGeometry(0.18,0.75,0.18),0x29352c,-0.23,0.42,0);
-part(new THREE.BoxGeometry(0.18,0.75,0.18),0x29352c,0.23,0.42,0);
-part(new THREE.BoxGeometry(0.15,0.7,0.15),0xc69b76,-0.48,1.4,-0.08);
-part(new THREE.BoxGeometry(0.15,0.7,0.15),0xc69b76,0.48,1.4,-0.08);
-part(new THREE.BoxGeometry(0.14,0.14,1.1),0x222222,0.35,1.4,-0.65);
+
+// तीसरे व्यक्ति वाला सैनिक
+const soldier = new THREE.Group();
 scene.add(soldier);
 
-for(let i=0;i<45;i++){
- const h=2+Math.random()*5;
- const tree=new THREE.Group();
- const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.18,.25,h*.45,7),
- new THREE.MeshStandardMaterial({color:0x65452b}));
- trunk.position.y=h*.225;tree.add(trunk);
- const leaves=new THREE.Mesh(new THREE.ConeGeometry(1.2,h*.55,8),
- new THREE.MeshStandardMaterial({color:0x28552b}));
- leaves.position.y=h*.65;tree.add(leaves);
- const a=Math.random()*Math.PI*2,r=18+Math.random()*100;
- tree.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
- scene.add(tree);
+function addPart(parent, geometry, color, x,y,z){
+  const mesh = new THREE.Mesh(geometry,new THREE.MeshStandardMaterial({color,roughness:.88}));
+  mesh.position.set(x,y,z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
 }
 
+const torso = addPart(soldier,new THREE.BoxGeometry(.85,.95,.43),0x354638,0,1.35,0);
+const vest = addPart(soldier,new THREE.BoxGeometry(.88,.58,.48),0x4e5137,0,1.43,-.02);
+addPart(soldier,new THREE.SphereGeometry(.27,16,12),0xc69a76,0,2.08,0);
+addPart(soldier,new THREE.SphereGeometry(.30,16,12),0x252d2b,0,2.27,0);
+
+const leftLeg = new THREE.Group();
+leftLeg.position.set(-.23,.95,0);
+soldier.add(leftLeg);
+addPart(leftLeg,new THREE.BoxGeometry(.25,.78,.3),0x303b31,0,-.37,0);
+addPart(leftLeg,new THREE.BoxGeometry(.3,.16,.48),0x252923,0,-.76,.08);
+
+const rightLeg = new THREE.Group();
+rightLeg.position.set(.23,.95,0);
+soldier.add(rightLeg);
+addPart(rightLeg,new THREE.BoxGeometry(.25,.78,.3),0x303b31,0,-.37,0);
+addPart(rightLeg,new THREE.BoxGeometry(.3,.16,.48),0x252923,0,-.76,.08);
+
+const leftArm = new THREE.Group();
+leftArm.position.set(-.49,1.72,0);
+soldier.add(leftArm);
+addPart(leftArm,new THREE.BoxGeometry(.23,.65,.25),0x3c4a37,0,-.3,0);
+
+const rightArm = new THREE.Group();
+rightArm.position.set(.49,1.72,0);
+soldier.add(rightArm);
+addPart(rightArm,new THREE.BoxGeometry(.23,.65,.25),0x3c4a37,0,-.3,0);
+
+// हाथ में बंदूक
+const gun = new THREE.Group();
+gun.position.set(.28,1.45,-.18);
+soldier.add(gun);
+addPart(gun,new THREE.BoxGeometry(.16,.16,.85),0x202522,0,0,-.35);
+addPart(gun,new THREE.BoxGeometry(.13,.28,.18),0x292d2a,0,-.18,-.12);
+addPart(gun,new THREE.BoxGeometry(.07,.07,.38),0x111514,0,.02,-.92);
+
+// पेड़
+for(let i=0;i<85;i++){
+  const tree = new THREE.Group();
+  const h=2.8+Math.random()*3.5;
+  addPart(tree,new THREE.CylinderGeometry(.15,.28,h*.45,7),0x65452d,0,h*.225,0);
+  addPart(tree,new THREE.ConeGeometry(1.25,h*.58,8),0x2e6034,0,h*.65,0);
+  const a=Math.random()*Math.PI*2;
+  const r=12+Math.random()*100;
+  tree.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+  scene.add(tree);
+}
+
+// दूर छोटे घर
+for(let i=0;i<12;i++){
+  const house=new THREE.Group();
+  const colors=[0xc4a47b,0xb8b2a0,0xa87559];
+  addPart(house,new THREE.BoxGeometry(5,3.5,5),colors[i%3],0,1.75,0);
+  addPart(house,new THREE.ConeGeometry(4.1,2,4),0x665247,0,4.4,0).rotation.y=Math.PI/4;
+  house.position.set((Math.random()-.5)*130,0,-25-Math.random()*90);
+  scene.add(house);
+}
+
+// कंट्रोल की स्थिति
+const move = {x:0,y:0};
+let yaw = 0;
+let cameraYaw = 0;
+let cameraPitch = 0.18;
+let moving = false;
+const keys = {};
+const status = document.getElementById('status');
+const joystick = document.getElementById('joystick');
+const stick = document.getElementById('stick');
+const look = document.getElementById('look');
+
+function updateStick(e){
+  const rect=joystick.getBoundingClientRect();
+  const cx=rect.left+rect.width/2;
+  const cy=rect.top+rect.height/2;
+  let dx=e.clientX-cx;
+  let dy=e.clientY-cy;
+  const max=rect.width*.32;
+  const len=Math.hypot(dx,dy);
+  if(len>max){dx=dx/len*max;dy=dy/len*max;}
+  move.x=dx/max;
+  move.y=-dy/max;
+  stick.style.transform=`translate(${dx}px,${dy}px)`;
+}
+joystick.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  joystick.setPointerCapture(e.pointerId);
+  updateStick(e);
+});
+joystick.addEventListener('pointermove',e=>{
+  if(joystick.hasPointerCapture(e.pointerId)) updateStick(e);
+});
+function resetStick(){
+  move.x=0;move.y=0;
+  stick.style.transform='translate(0px,0px)';
+}
+joystick.addEventListener('pointerup',resetStick);
+joystick.addEventListener('pointercancel',resetStick);
+joystick.addEventListener('lostpointercapture',resetStick);
+
+// दाईं तरफ उंगली खींचने से कैमरा घूमेगा
+let lookPointer=null;
+let lastX=0,lastY=0;
+look.addEventListener('pointerdown',e=>{
+  lookPointer=e.pointerId;
+  lastX=e.clientX;lastY=e.clientY;
+  look.setPointerCapture(e.pointerId);
+});
+look.addEventListener('pointermove',e=>{
+  if(lookPointer!==e.pointerId)return;
+  const dx=e.clientX-lastX;
+  const dy=e.clientY-lastY;
+  lastX=e.clientX;lastY=e.clientY;
+  cameraYaw-=dx*.006;
+  cameraPitch=Math.max(-.15,Math.min(.65,cameraPitch+dy*.004));
+});
+function stopLook(e){if(lookPointer===e.pointerId)lookPointer=null;}
+look.addEventListener('pointerup',stopLook);
+look.addEventListener('pointercancel',stopLook);
+
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+addEventListener('blur',()=>{for(const k in keys)keys[k]=false;resetStick();});
+
+// शुरुआती कैमरा
 camera.position.set(0,4,7);
-camera.lookAt(0,1,0);
+camera.lookAt(0,1.3,0);
+
+const clock=new THREE.Clock();
+let walkTime=0;
+
 function animate(){
- requestAnimationFrame(animate);
- camera.position.lerp(new THREE.Vector3(
- soldier.position.x, soldier.position.y+4, soldier.position.z+7),0.08);
- camera.lookAt(soldier.position.x,1.2,soldier.position.z);
- renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),.05);
+
+  let forward=move.y;
+  let side=move.x;
+  if(keys.w||keys.arrowup)forward+=1;
+  if(keys.s||keys.arrowdown)forward-=1;
+  if(keys.d||keys.arrowright)side+=1;
+  if(keys.a||keys.arrowleft)side-=1;
+
+  const length=Math.hypot(forward,side);
+  moving=length>.12;
+
+  if(length>1){forward/=length;side/=length;}
+
+  if(moving){
+    // कैमरे की दिशा के अनुसार आगे और साइड मूवमेंट
+    const fx=-Math.sin(cameraYaw);
+    const fz=-Math.cos(cameraYaw);
+    const rx=Math.cos(cameraYaw);
+    const rz=-Math.sin(cameraYaw);
+    const vx=(fx*forward+rx*side);
+    const vz=(fz*forward+rz*side);
+    const speed=6;
+    soldier.position.x+=vx*speed*dt;
+    soldier.position.z+=vz*speed*dt;
+    yaw=Math.atan2(vx,vz);
+    soldier.rotation.y=yaw;
+    walkTime+=dt*10;
+    leftLeg.rotation.x=Math.sin(walkTime)*.55;
+    rightLeg.rotation.x=-Math.sin(walkTime)*.55;
+    leftArm.rotation.x=-Math.sin(walkTime)*.3;
+    rightArm.rotation.x=Math.sin(walkTime)*.3;
+  }else{
+    leftLeg.rotation.x=THREE.MathUtils.damp(leftLeg.rotation.x,0,8,dt);
+    rightLeg.rotation.x=THREE.MathUtils.damp(rightLeg.rotation.x,0,8,dt);
+    leftArm.rotation.x=THREE.MathUtils.damp(leftArm.rotation.x,0,8,dt);
+    rightArm.rotation.x=THREE.MathUtils.damp(rightArm.rotation.x,0,8,dt);
+  }
+
+  // कैमरा खिलाड़ी के पीछे और थोड़ा ऊपर
+  const distance=7;
+  const targetX=soldier.position.x+Math.sin(cameraYaw)*distance;
+  const targetZ=soldier.position.z+Math.cos(cameraYaw)*distance;
+  const targetY=soldier.position.y+3.2+cameraPitch*3;
+  camera.position.x=THREE.MathUtils.damp(camera.position.x,targetX,6,dt);
+  camera.position.y=THREE.MathUtils.damp(camera.position.y,targetY,6,dt);
+  camera.position.z=THREE.MathUtils.damp(camera.position.z,targetZ,6,dt);
+  camera.lookAt(soldier.position.x,soldier.position.y+1.3,soldier.position.z);
+
+  status.textContent=moving?'सैनिक चल रहा है 🏃':'3D सैनिक तैयार है';
+  renderer.render(scene,camera);
 }
 animate();
 
 addEventListener('resize',()=>{
- camera.aspect=innerWidth/innerHeight;
- camera.updateProjectionMatrix();
- renderer.setSize(innerWidth,innerHeight);
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
 });
-document.getElementById('info').innerHTML='ATUL BATTLE ROYALE 3D<br>3D डेमो चालू है';
 </script>
 </body>
 </html>
