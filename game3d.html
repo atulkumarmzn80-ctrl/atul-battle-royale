@@ -266,7 +266,34 @@ function animate(){
 
   status.textContent=moving?'सैनिक चल रहा है 🏃':'3D सैनिक तैयार है';
   renderer.render(scene,camera);
+}// Enemy bots setup
+const enemyBots = [];
+
+function createEnemyBot(x, z) {
+  const bot = new THREE.Group();
+
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(0.8, 1.2, 0.5),
+    new THREE.MeshStandardMaterial({ color: 0xff2222 })
+  );
+  body.position.y = 1.1;
+  bot.add(body);
+
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.3, 12, 12),
+    new THREE.MeshStandardMaterial({ color: 0xffcc99 })
+  );
+  head.position.y = 2;
+  bot.add(head);
+
+  bot.position.set(x, 0, z);
+  scene.add(bot);
+  enemyBots.push(bot);
 }
+
+createEnemyBot(8, 8);
+createEnemyBot(-10, 5);
+createEnemyBot(5, -12);
 animate();
 
 addEventListener('resize',()=>{
