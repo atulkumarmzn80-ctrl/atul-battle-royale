@@ -71,5 +71,169 @@ else{ctx.fillStyle='white';ctx.font='32px Arial';ctx.fillText('GAME OVER',w/2-95
 }
 requestAnimationFrame(loop);
 </script>
+
+<script>
+(function () {
+  const panel = document.createElement('div');
+  panel.style.cssText =
+    'position:fixed;top:12px;right:10px;z-index:10;' +
+    'background:#10251fee;padding:12px;border-radius:12px;' +
+    'width:190px;color:white;font:14px Arial';
+
+  panel.innerHTML = `
+    <b>🌐 ONLINE MULTIPLAYER</b>
+    <input id="mpName" placeholder="अपना नाम"
+      maxlength="16" value="Player"
+      style="width:100%;padding:9px;margin-top:10px;box-sizing:border-box">
+    <button id="mpCreate"
+      style="width:100%;height:40px;border-radius:8px;margin-top:8px">
+      Create Room
+    </button>
+    <input id="mpCode" placeholder="Room Code"
+      maxlength="5"
+      style="width:100%;padding:9px;margin-top:8px;box-sizing:border-box">
+    <button id="mpJoin"
+      style="width:100%;height:40px;border-radius:8px;margin-top:8px">
+      Join Room
+    </button>
+    <div id="mpStatus" style="margin-top:10px;overflow-wrap:anywhere">
+      सर्वर से जुड़ने के लिए तैयार
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  const overlay = document.createElement('canvas');
+  overlay.style.cssText =
+    'position:fixed;inset:0;width:100%;height:100%;' +
+    'z-index:1;pointer-events:none';
+  overlay.width = innerWidth;
+  overlay.height = innerHeight;
+  document.body.appendChild(overlay);
+
+  const ctx = overlay.getContext('2d');
+  const status = document.getElementById('mpStatus');
+  const name = document.getElementById('mpName');
+  let ws = null;
+  let myId = null;
+  let players = {};
+
+  document.querySelector('#info').style.zIndex = 3;
+  document.querySelector('.controls').style.zIndex = 3;
+
+  function connect(action) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      sendAction(action);
+      return;
+    }
+
+    status.textContent = 'सर्वर से जुड़ रहे हैं...';
+    ws = new WebSocket(
+      (location.protocol === 'https:' ? 'wss://' : 'ws://') +
+      location.host + '/ws'
+    );
+
+    ws.onopen = () => sendAction(action);
+
+    ws.onmessage = event => {
+      let data;
+      try { data = JSON.parse(event.data); } catch { return; }
+
+      if (data.type === 'room' || data.type === 'joined') {
+        myId = data.id;
+        status.textContent = 'Room Code: ' + data.code;
+      } else if (data.type === 'snapshot') {
+        players = data.players || {};
+        if (data.code) {
+          status.textContent =
+            'Room: ' + data.code + ' | खिलाड़ी: ' + data.count;
+        }
+      } else if (data.type === 'error') {
+        status.textContent = data.message;
+      }
+    };
+
+    ws.onerror = () => {
+      status.textContent = 'कनेक्शन में समस्या। दोबारा कोशिश करो।';
+    };
+
+    ws.onclose = () => {
+      status.textContent = 'सर्वर से कनेक्शन बंद हो गया।';
+    };
+  }
+
+  function sendAction(action) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    const playerName = name.value.trim() || 'Player';
+    ws.send(JSON.stringify({
+      type: action,
+      name: playerName,
+      code: document.getElementById('mpCode').value.trim().toUpperCase()
+    }));
+  }
+
+  document.getElementById('mpCreate').onclick = () => connect('create');
+  document.getElementById('mpJoin').onclick = () => {
+    if (!document.getElementById('mpCode').value.trim()) {
+      status.textContent = 'पहले Room Code डालो।';
+      return;
+    }
+    connect('join');
+  };
+
+  setInterval(() => {
+    if (!ws || ws.readyState !== WebSocket.OPEN || !myId) return;
+
+    const gameCanvas = document.getElementById('game');
+    const gameWidth = gameCanvas.width;
+    const gameHeight = gameCanvas.height;
+
+    ws.send(JSON.stringify({
+      type: 'state',
+      name: name.value.trim() || 'Player',
+      x: px / gameWidth,
+      z: py / gameHeight,
+      yaw: 0,
+      hp: hp
+    }));
+  }, 100);
+
+  function drawPlayers() {
+    if (overlay.width !== innerWidth || overlay.height !== innerHeight) {
+      overlay.width = innerWidth;
+      overlay.height = innerHeight;
+    }
+
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+    for (const id in players) {
+      if (id === myId) continue;
+      const p = players[id];
+      if (!p || !p.state) continue;
+
+      const x = p.state.x * overlay.width;
+      const y = p.state.z * overlay.height;
+
+      ctx.fillStyle = '#ff8c42';
+      ctx.beginPath();
+      ctx.arc(x, y, 16, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'white';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.state.name || 'Player', x, y - 22);
+    }
+
+    requestAnimationFrame(drawPlayers);
+  }
+
+  drawPlayers();
+})();
+</script>
+</body>
+</html>
+
 </body>
 </html>
