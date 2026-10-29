@@ -7,46 +7,47 @@
 <title>Atul Battle Royale</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#b99a62;color:white;font-family:Arial;overflow:hidden;touch-action:none}
-#game{display:block;width:100vw;height:100dvh}
-#info{position:fixed;top:10px;left:10px;z-index:3;background:#20190ddd;padding:10px;border-radius:10px;font-size:13px;line-height:1.7}
-#mp{position:fixed;top:10px;right:10px;width:175px;z-index:4;background:#20190dee;padding:10px;border-radius:10px;font-size:12px}
-#mp input,#mp button{width:100%;padding:9px;margin-top:6px;border-radius:7px;border:1px solid #ddd}
-#mp button{background:#344b32;color:white;font-weight:bold}
-#controls{position:fixed;bottom:18px;left:14px;right:14px;z-index:3;display:flex;justify-content:space-between;align-items:end;pointer-events:none}
-#pad,#fire{pointer-events:auto}
-#pad{display:grid;grid-template-columns:44px 44px 44px;grid-template-rows:44px 44px 44px;gap:3px}
-#pad button,#fire{background:#18251dcc;color:white;border:2px solid #ffffff99;font-weight:bold;touch-action:none}
-#pad button{width:44px;height:44px;border-radius:10px}
-#fire{width:72px;height:72px;border-radius:50%;background:#b52e22;font-size:14px}
-#mini{position:fixed;right:12px;bottom:115px;width:100px;height:100px;border:2px solid white;border-radius:8px;z-index:3;background:#29251c}
+body{margin:0;background:#c9ad75;color:white;font-family:Arial;overflow:hidden;touch-action:none}
+#game{width:100vw;height:100dvh;display:block}
+#info{position:fixed;top:8px;left:8px;background:#17150ddd;padding:9px;border-radius:9px;z-index:3;font-size:12px;line-height:1.6}
+#mp{position:fixed;right:8px;top:8px;width:145px;background:#17150dee;padding:8px;border-radius:9px;z-index:5;font-size:12px}
+#mp input,#mp button{width:100%;padding:8px;margin-top:5px;border:0;border-radius:6px}
+#mp button{background:#3c6040;color:white;font-weight:bold}
+#mini{position:fixed;right:8px;bottom:190px;width:85px;height:85px;background:#333;z-index:3;border:2px solid white;border-radius:7px}
+#moveStick,#aimStick{position:fixed;bottom:25px;width:120px;height:120px;border:3px solid #ffffff88;border-radius:50%;background:#0005;z-index:8;touch-action:none}
+#moveStick{left:18px}
+#aimStick{right:100px}
+.knob{position:absolute;left:35px;top:35px;width:44px;height:44px;border-radius:50%;background:#ffffffbb;border:2px solid white;pointer-events:none}
+#fire2{position:fixed;right:12px;bottom:45px;width:76px;height:76px;border-radius:50%;border:3px solid white;background:#c32e22;color:white;font-weight:bold;z-index:9;touch-action:none}
+#hint{position:fixed;bottom:155px;left:12px;font-size:10px;color:white;text-shadow:0 1px 3px black;z-index:4}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+
 <div id="info">
 <b>ATUL BATTLE ROYALE</b><br>
 ❤️ Health: <span id="hp">100</span><br>
-🎯 Score: <span id="score">0</span><br>
-🔵 Zone: <span id="zoneText">100%</span><br>
+🎯 Kills: <span id="score">0</span><br>
+🔵 Zone: <span id="zone">100%</span><br>
 👥 Players: <span id="count">1</span>
 </div>
+
 <div id="mp">
 <b>🌐 ONLINE ROOM</b>
-<input id="name" maxlength="16" placeholder="Player name" value="Player">
+<input id="playerName" maxlength="16" value="Player" placeholder="Player name">
 <button id="create">Create Room</button>
 <input id="roomCode" maxlength="5" placeholder="Room Code">
 <button id="join">Join Room</button>
-<div id="status" style="margin-top:8px;overflow-wrap:anywhere">Ready</div>
+<div id="status" style="margin-top:6px;overflow-wrap:anywhere">Ready</div>
 </div>
-<canvas id="mini" width="100" height="100"></canvas>
-<div id="controls">
-<div id="pad">
-<span></span><button data-m="up">▲</button><span></span>
-<button data-m="left">◀</button><button data-m="down">▼</button><button data-m="right">▶</button>
-</div>
-<button id="fire">FIRE</button>
-</div>
+
+<canvas id="mini" width="85" height="85"></canvas>
+<div id="hint">बायाँ: चलें · दायाँ: Aim · FIRE: गोली</div>
+
+<div id="moveStick"><div id="moveKnob" class="knob"></div></div>
+<div id="aimStick"><div id="aimKnob" class="knob"></div></div>
+<button id="fire2">FIRE</button>
 
 <script>
 const canvas=document.getElementById('game');
@@ -55,16 +56,20 @@ const mini=document.getElementById('mini');
 const mctx=mini.getContext('2d');
 
 const WORLD=4000;
-const ZONE_START=1800;
-const ZONE_END=180;
-const SHRINK_MS=180000;
-const zoneEpoch=Math.floor(Date.now()/10000)*10000;
+const CENTER=WORLD/2;
+const START_RADIUS=1750;
+const END_RADIUS=170;
+const SHRINK_TIME=180000;
 
 let w=innerWidth,h=innerHeight;
-let px=WORLD/2,py=WORLD/2;
-let hp=100,score=0,last=performance.now(),lastDamage=0;
-let shots=[],enemies=[],keys={};
+let px=CENTER,py=CENTER;
+let hp=100,kills=0;
+let aimAngle=-Math.PI/2;
+let moveX=0,moveY=0;
+let last=performance.now(),lastDamage=0;
+let shots=[],enemies=[];
 let ws=null,myId=null,players={};
+let roomJoined=false;
 
 function resize(){
  w=innerWidth;h=innerHeight;
@@ -76,61 +81,113 @@ addEventListener('resize',resize);
 function rand(a,b){return a+Math.random()*(b-a)}
 
 const buildings=[];
-for(let i=0;i<36;i++){
- const x=rand(150,WORLD-300),y=rand(150,WORLD-300);
- if(Math.hypot(x-WORLD/2,y-WORLD/2)<300)continue;
- buildings.push({x,y,w:rand(70,150),h:rand(60,120)});
+for(let i=0;i<42;i++){
+ buildings.push({
+  x:rand(100,WORLD-250),
+  y:rand(100,WORLD-250),
+  w:rand(65,145),
+  h:rand(55,115)
+ });
 }
-
-const roads=[
- {x:0,y:900,w:WORLD,h:100},
- {x:0,y:2700,w:WORLD,h:110},
- {x:1100,y:0,w:100,h:WORLD},
- {x:2800,y:0,w:90,h:WORLD}
-];
 
 function spawnEnemy(){
  enemies.push({x:rand(100,WORLD-100),y:rand(100,WORLD-100),r:14});
 }
-for(let i=0;i<12;i++)spawnEnemy();
+for(let i=0;i<14;i++)spawnEnemy();
 
-document.querySelectorAll('[data-m]').forEach(b=>{
- const k=b.dataset.m;
- b.addEventListener('pointerdown',e=>{
-  e.preventDefault();keys[k]=true;
+function zoneRadius(){
+ const progress=Math.min(1,Math.max(0,(Date.now()-zoneStart)/SHRINK_TIME));
+ return START_RADIUS-(START_RADIUS-END_RADIUS)*progress;
+}
+let zoneStart=Date.now();
+
+function setupStick(id,knobId,onMove,onEnd){
+ const pad=document.getElementById(id);
+ const knob=document.getElementById(knobId);
+ let pointer=null;
+
+ function update(e){
+  const r=pad.getBoundingClientRect();
+  const cx=r.left+r.width/2,cy=r.top+r.height/2;
+  let dx=e.clientX-cx,dy=e.clientY-cy;
+  const max=37;
+  const d=Math.hypot(dx,dy);
+  if(d>max){dx=dx/d*max;dy=dy/d*max}
+  knob.style.transform=`translate(${dx}px,${dy}px)`;
+  onMove(dx/max,dy/max,e.clientX,e.clientY);
+ }
+
+ pad.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(pointer!==null)return;
+  pointer=e.pointerId;
+  pad.setPointerCapture(pointer);
+  update(e);
  });
- ['pointerup','pointercancel','pointerleave'].forEach(t=>
-  b.addEventListener(t,()=>keys[k]=false));
+
+ pad.addEventListener('pointermove',e=>{
+  if(e.pointerId===pointer)update(e);
+ });
+
+ function end(e){
+  if(e.pointerId!==pointer)return;
+  pointer=null;
+  knob.style.transform='translate(0px,0px)';
+  onEnd();
+ }
+ pad.addEventListener('pointerup',end);
+ pad.addEventListener('pointercancel',end);
+}
+
+setupStick('moveStick','moveKnob',(x,y)=>{
+ moveX=x;moveY=y;
+},()=>{
+ moveX=0;moveY=0;
 });
+
+setupStick('aimStick','aimKnob',(x,y,screenX,screenY)=>{
+ if(Math.hypot(x,y)>.15){
+  aimAngle=Math.atan2(y,x);
+ }
+},()=>{});
 
 function fire(){
  if(hp<=0)return;
- shots.push({x:px,y:py-20,dy:-9});
+ const speed=13;
+ shots.push({
+  x:px+Math.cos(aimAngle)*22,
+  y:py+Math.sin(aimAngle)*22,
+  vx:Math.cos(aimAngle)*speed,
+  vy:Math.sin(aimAngle)*speed,
+  life:100
+ });
 }
-document.getElementById('fire').addEventListener('pointerdown',e=>{
- e.preventDefault();fire();
+document.getElementById('fire2').addEventListener('pointerdown',e=>{
+ e.preventDefault();
+ fire();
 });
 
-function zoneRadius(){
- const progress=Math.min(1,Math.max(0,(Date.now()-zoneEpoch)/SHRINK_MS));
- return ZONE_START-(ZONE_START-ZONE_END)*progress;
-}
-
-function drawMap(camX,camY){
+function drawMap(){
  ctx.fillStyle='#c9ad75';
  ctx.fillRect(0,0,WORLD,WORLD);
 
- // रेगिस्तानी रेत
- for(let i=0;i<230;i++){
+ // रेत के छोटे निशान
+ for(let i=0;i<260;i++){
   const x=(i*7919)%WORLD,y=(i*104729)%WORLD;
-  ctx.fillStyle=i%2?'#b99b65':'#d4b981';
+  ctx.fillStyle=i%2?'#b99b65':'#d9c18a';
   ctx.fillRect(x,y,4,3);
  }
 
  // सड़कें
+ const roads=[
+  {x:0,y:850,w:WORLD,h:90},
+  {x:0,y:2800,w:WORLD,h:100},
+  {x:1000,y:0,w:85,h:WORLD},
+  {x:2950,y:0,w:100,h:WORLD}
+ ];
  roads.forEach(r=>{
-  ctx.fillStyle='#82775e';ctx.fillRect(r.x,r.y,r.w,r.h);
-  ctx.strokeStyle='#e0c995';ctx.lineWidth=3;ctx.setLineDash([22,18]);
+  ctx.fillStyle='#84785f';ctx.fillRect(r.x,r.y,r.w,r.h);
+  ctx.strokeStyle='#e4d2a3';ctx.lineWidth=3;ctx.setLineDash([20,20]);
   ctx.beginPath();
   if(r.w>r.h){
    ctx.moveTo(r.x,r.y+r.h/2);ctx.lineTo(r.x+r.w,r.y+r.h/2);
@@ -140,92 +197,100 @@ function drawMap(camX,camY){
   ctx.stroke();ctx.setLineDash([]);
  });
 
- // मिलिट्री बेस की बाड़
- ctx.strokeStyle='#45473b';ctx.lineWidth=10;
- ctx.strokeRect(1550,1450,900,800);
- ctx.strokeStyle='#e2d8b4';ctx.lineWidth=2;
- ctx.strokeRect(1550,1450,900,800);
+ // मिलिट्री बेस
+ ctx.fillStyle='#686b54';
+ ctx.fillRect(1500,1400,1000,950);
+ ctx.strokeStyle='#ddd0a8';ctx.lineWidth=9;
+ ctx.strokeRect(1500,1400,1000,950);
 
- // हैंगर और इमारतें
  buildings.forEach((b,i)=>{
-  ctx.fillStyle='#786b50';
-  ctx.fillRect(b.x+5,b.y+7,b.w,b.h);
-  ctx.fillStyle=i%3===0?'#777b6b':'#9d987f';
+  ctx.fillStyle='#5c5140';
+  ctx.fillRect(b.x+5,b.y+6,b.w,b.h);
+  ctx.fillStyle=i%3===0?'#7c806e':'#a59b7d';
   ctx.fillRect(b.x,b.y,b.w,b.h);
-  ctx.fillStyle='#4d594b';
+  ctx.fillStyle='#4b5947';
   ctx.fillRect(b.x+8,b.y+8,b.w-16,10);
-  ctx.strokeStyle='#ded0a6';ctx.lineWidth=2;
+  ctx.strokeStyle='#e0d0aa';ctx.lineWidth=2;
   ctx.strokeRect(b.x,b.y,b.w,b.h);
  });
 
- // मिलिट्री बेस के कंटेनर
+ // बेस के कंटेनर
  for(let i=0;i<9;i++){
-  const x=1660+(i%3)*230,y=1600+Math.floor(i/3)*180;
-  ctx.fillStyle=i%2?'#5c6b4c':'#8a593e';
-  ctx.fillRect(x,y,130,65);
-  ctx.strokeStyle='#d4c29b';ctx.strokeRect(x,y,130,65);
+  const x=1620+(i%3)*245,y=1540+Math.floor(i/3)*220;
+  ctx.fillStyle=i%2?'#596b4c':'#87583e';
+  ctx.fillRect(x,y,140,70);
+  ctx.strokeStyle='#e0d0aa';ctx.lineWidth=2;
+  ctx.strokeRect(x,y,140,70);
   for(let k=1;k<5;k++){
-   ctx.beginPath();ctx.moveTo(x+k*24,y);ctx.lineTo(x+k*24,y+65);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(x+k*25,y);ctx.lineTo(x+k*25,y+70);ctx.stroke();
   }
  }
 }
 
 function drawZone(){
- const r=zoneRadius(),cx=WORLD/2,cy=WORLD/2;
- // सुरक्षित क्षेत्र के बाहर लाल रंग की परत
+ const r=zoneRadius();
  ctx.save();
- ctx.fillStyle='rgba(180,35,25,0.25)';
+ ctx.fillStyle='rgba(180,30,20,.28)';
  ctx.beginPath();
  ctx.rect(0,0,WORLD,WORLD);
- ctx.arc(cx,cy,r,0,Math.PI*2,true);
+ ctx.arc(CENTER,CENTER,r,0,Math.PI*2,true);
  ctx.fill('evenodd');
+
+ ctx.strokeStyle='#54cfff';ctx.lineWidth=12;
+ ctx.beginPath();ctx.arc(CENTER,CENTER,r,0,Math.PI*2);ctx.stroke();
+ ctx.strokeStyle='#dff8ff';ctx.lineWidth=3;
+ ctx.beginPath();ctx.arc(CENTER,CENTER,r,0,Math.PI*2);ctx.stroke();
  ctx.restore();
 
- ctx.strokeStyle='#57caff';
- ctx.lineWidth=12;
- ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
- ctx.strokeStyle='#d9f5ff';ctx.lineWidth=3;
- ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
-
- document.getElementById('zoneText').textContent=
-  Math.round(r/ZONE_START*100)+'%';
+ document.getElementById('zone').textContent=
+  Math.round(r/START_RADIUS*100)+'%';
 }
 
-function drawPlayer(x,y,color,label){
+function drawPlayer(x,y,color,label,angle){
  ctx.fillStyle=color;
- ctx.beginPath();ctx.arc(x,y,15,0,Math.PI*2);ctx.fill();
- ctx.fillStyle='#222';
- ctx.fillRect(x-5,y-22,10,10);
+ ctx.beginPath();ctx.arc(x,y,16,0,Math.PI*2);ctx.fill();
+
+ // खिलाड़ी की दिशा का निशान
+ ctx.strokeStyle='#fff';ctx.lineWidth=5;
+ ctx.beginPath();
+ ctx.moveTo(x,y);
+ ctx.lineTo(x+Math.cos(angle)*24,y+Math.sin(angle)*24);
+ ctx.stroke();
+
  ctx.fillStyle='white';
- ctx.font='13px Arial';ctx.textAlign='center';
- ctx.fillText(label||'Player',x,y-29);
+ ctx.font='14px Arial';
+ ctx.textAlign='center';
+ ctx.fillText(label||'Player',x,y-25);
 }
 
 function drawMini(){
- mctx.fillStyle='#bda36d';mctx.fillRect(0,0,100,100);
- mctx.fillStyle='#82775e';
- mctx.fillRect(0,22,100,3);mctx.fillRect(27,0,3,100);
- mctx.strokeStyle='#57caff';mctx.lineWidth=1.5;
+ mctx.fillStyle='#c9ad75';
+ mctx.fillRect(0,0,85,85);
+ mctx.strokeStyle='#54cfff';mctx.lineWidth=1.5;
  mctx.beginPath();
- mctx.arc(50,50,zoneRadius()/WORLD*100,0,Math.PI*2);
+ mctx.arc(42.5,42.5,zoneRadius()/WORLD*85,0,Math.PI*2);
  mctx.stroke();
- mctx.fillStyle='#36a9ff';
- mctx.fillRect(px/WORLD*100-2,py/WORLD*100-2,5,5);
+
+ mctx.fillStyle='#28a9ff';
+ mctx.fillRect(px/WORLD*85-2,py/WORLD*85-2,5,5);
+
  for(const id in players){
   if(id===myId)continue;
-  const p=players[id].state;if(!p)continue;
-  mctx.fillStyle='#ff684d';
-  mctx.fillRect(p.x*100-2,p.z*100-2,4,4);
+  const p=players[id];
+  if(!p)continue;
+  mctx.fillStyle='#ff5544';
+  mctx.fillRect(p.x*85-2,p.z*85-2,4,4);
  }
 }
 
 function loop(t){
- const dt=Math.min((t-last)/16||1,2);last=t;
+ const dt=Math.min((t-last)/16||1,2);
+ last=t;
+
  if(hp>0){
-  if(keys.up)py-=4*dt;
-  if(keys.down)py+=4*dt;
-  if(keys.left)px-=4*dt;
-  if(keys.right)px+=4*dt;
+  const speed=4.2;
+  px+=moveX*speed*dt;
+  py+=moveY*speed*dt;
  }
  px=Math.max(20,Math.min(WORLD-20,px));
  py=Math.max(20,Math.min(WORLD-20,py));
@@ -236,54 +301,60 @@ function loop(t){
  ctx.clearRect(0,0,w,h);
  ctx.save();
  ctx.translate(-camX,-camY);
- drawMap(camX,camY);
+
+ drawMap();
  drawZone();
 
- // गोली
- shots.forEach(s=>s.y+=s.dy*dt);
- shots=shots.filter(s=>s.y>0);
- ctx.fillStyle='#ffe26a';
- shots.forEach(s=>ctx.fillRect(s.x-3,s.y-8,6,12));
+ // गोलियाँ
+ shots.forEach(s=>{
+  s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;
+ });
+ shots=shots.filter(s=>s.life>0&&s.x>=0&&s.y>=0&&s.x<=WORLD&&s.y<=WORLD);
+
+ ctx.fillStyle='#ffe36c';
+ shots.forEach(s=>{
+  ctx.beginPath();ctx.arc(s.x,s.y,5,0,Math.PI*2);ctx.fill();
+ });
 
  // दुश्मन
  enemies.forEach(e=>{
   const dx=px-e.x,dy=py-e.y,d=Math.hypot(dx,dy)||1;
   e.x+=dx/d*.35*dt;e.y+=dy/d*.35*dt;
-  ctx.fillStyle='#b83d2c';
+  ctx.fillStyle='#ba3d2d';
   ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();
-  if(d<28&&t-lastDamage>500){
+  if(d<30&&t-lastDamage>600){
    hp=Math.max(0,hp-1);lastDamage=t;
   }
  });
 
  for(let i=enemies.length-1;i>=0;i--){
   const e=enemies[i];
-  const hit=shots.some(s=>Math.hypot(s.x-e.x,s.y-e.y)<e.r+5);
+  const hit=shots.some(s=>Math.hypot(s.x-e.x,s.y-e.y)<e.r+7);
   if(hit){
    enemies.splice(i,1);
-   shots=shots.filter(s=>Math.hypot(s.x-e.x,s.y-e.y)>=e.r+5);
-   score++;spawnEnemy();
+   shots=shots.filter(s=>Math.hypot(s.x-e.x,s.y-e.y)>=e.r+7);
+   kills++;spawnEnemy();
   }
  }
 
- // Safe Zone से बाहर damage
- const distance=Math.hypot(px-WORLD/2,py-WORLD/2);
- if(distance>zoneRadius()&&t-lastDamage>900){
+ // Safe Zone damage
+ if(Math.hypot(px-CENTER,py-CENTER)>zoneRadius()&&t-lastDamage>900){
   hp=Math.max(0,hp-2);lastDamage=t;
  }
 
- drawPlayer(px,py,'#28a9ff','YOU');
+ drawPlayer(px,py,'#28a9ff','YOU',aimAngle);
 
  for(const id in players){
   if(id===myId)continue;
-  const p=players[id].state;
+  const p=players[id];
   if(!p)continue;
-  drawPlayer(p.x*WORLD,p.z*WORLD,'#ff684d',p.name||'Player');
+  drawPlayer(p.x*WORLD,p.z*WORLD,'#ff5544',p.name,p.yaw||0);
  }
+
  ctx.restore();
 
  document.getElementById('hp').textContent=hp;
- document.getElementById('score').textContent=score;
+ document.getElementById('score').textContent=kills;
  document.getElementById('count').textContent=Object.keys(players).length||1;
  drawMini();
 
@@ -291,15 +362,16 @@ function loop(t){
  else{
   ctx.fillStyle='#17130ddd';ctx.fillRect(0,0,w,h);
   ctx.fillStyle='white';ctx.textAlign='center';
-  ctx.font='bold 32px Arial';ctx.fillText('GAME OVER',w/2,h/2);
-  ctx.font='16px Arial';ctx.fillText('Refresh to play again',w/2,h/2+35);
+  ctx.font='bold 30px Arial';ctx.fillText('GAME OVER',w/2,h/2);
+  ctx.font='16px Arial';ctx.fillText('Refresh to play again',w/2,h/2+32);
  }
 }
 requestAnimationFrame(loop);
 
+// ऑनलाइन रूम
 const status=document.getElementById('status');
-const nameInput=document.getElementById('name');
-const roomInput=document.getElementById('roomCode');
+const nameInput=document.getElementById('playerName');
+const codeInput=document.getElementById('roomCode');
 
 function connect(action){
  if(ws&&ws.readyState===WebSocket.OPEN){
@@ -312,7 +384,7 @@ function connect(action){
  ws.onmessage=e=>{
   let d;try{d=JSON.parse(e.data)}catch{return}
   if(d.type==='room'||d.type==='joined'){
-   myId=d.id;
+   myId=d.id;roomJoined=true;
    status.textContent='Room Code: '+d.code;
   }else if(d.type==='snapshot'){
    players=d.players||{};
@@ -320,6 +392,8 @@ function connect(action){
    if(d.code)status.textContent='Room: '+d.code+' | Players: '+d.count;
   }else if(d.type==='error'){
    status.textContent=d.message;
+  }else if(d.type==='tagged'){
+   hp=Math.max(0,hp-10);
   }
  };
  ws.onerror=()=>status.textContent='Connection error';
@@ -331,17 +405,19 @@ function sendAction(type){
  ws.send(JSON.stringify({
   type,
   name:nameInput.value.trim()||'Player',
-  code:roomInput.value.trim().toUpperCase()
+  code:codeInput.value.trim().toUpperCase()
  }));
 }
+
 document.getElementById('create').onclick=()=>connect('create');
 document.getElementById('join').onclick=()=>{
- if(!roomInput.value.trim()){
+ if(!codeInput.value.trim()){
   status.textContent='पहले Room Code डालो';return;
  }
  connect('join');
 };
 
+// सर्वर पर खिलाड़ी की स्थिति भेजें
 setInterval(()=>{
  if(!ws||ws.readyState!==WebSocket.OPEN||!myId)return;
  ws.send(JSON.stringify({
@@ -349,7 +425,7 @@ setInterval(()=>{
   name:nameInput.value.trim()||'Player',
   x:px/WORLD,
   z:py/WORLD,
-  yaw:0,
+  yaw:aimAngle,
   hp
  }));
 },100);
