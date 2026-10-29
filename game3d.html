@@ -313,9 +313,11 @@ async function enableLandscape() {
 }
 
 document.addEventListener("pointerdown", enableLandscape, { once: true });
-// Aim-based mobile shooting
-const fireBtn =// Gunshot sound effect
+// Gunshot sound effect
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+// Aim-based mobile shooting
+const fireBtn = document.getElementById("fireBtn");
 
 function playGunshot() {
   if (audioContext.state === "suspended") {
