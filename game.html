@@ -4,236 +4,355 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Battle Royale</title>
+<title>Atul Battle Royale</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#14251b;color:white;font-family:Arial;overflow:hidden;touch-action:none}
-canvas{display:block;width:100vw;height:100dvh}
-#info{position:fixed;top:12px;left:12px;background:#0009;padding:12px;border-radius:10px}
-.controls{position:fixed;bottom:22px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:end}
-button{border:2px solid #fff8;background:#ffffff24;color:white;border-radius:50%;font-weight:bold;width:76px;height:76px;touch-action:none}
-#shoot{background:#c0392b;font-size:16px}
-#pad{display:grid;grid-template-columns:50px 50px 50px;grid-template-rows:50px 50px 50px;gap:3px}
-#pad button{width:50px;height:50px;border-radius:12px}
-#pad span{display:block}
+body{margin:0;background:#b99a62;color:white;font-family:Arial;overflow:hidden;touch-action:none}
+#game{display:block;width:100vw;height:100dvh}
+#info{position:fixed;top:10px;left:10px;z-index:3;background:#20190ddd;padding:10px;border-radius:10px;font-size:13px;line-height:1.7}
+#mp{position:fixed;top:10px;right:10px;width:175px;z-index:4;background:#20190dee;padding:10px;border-radius:10px;font-size:12px}
+#mp input,#mp button{width:100%;padding:9px;margin-top:6px;border-radius:7px;border:1px solid #ddd}
+#mp button{background:#344b32;color:white;font-weight:bold}
+#controls{position:fixed;bottom:18px;left:14px;right:14px;z-index:3;display:flex;justify-content:space-between;align-items:end;pointer-events:none}
+#pad,#fire{pointer-events:auto}
+#pad{display:grid;grid-template-columns:44px 44px 44px;grid-template-rows:44px 44px 44px;gap:3px}
+#pad button,#fire{background:#18251dcc;color:white;border:2px solid #ffffff99;font-weight:bold;touch-action:none}
+#pad button{width:44px;height:44px;border-radius:10px}
+#fire{width:72px;height:72px;border-radius:50%;background:#b52e22;font-size:14px}
+#mini{position:fixed;right:12px;bottom:115px;width:100px;height:100px;border:2px solid white;border-radius:8px;z-index:3;background:#29251c}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="info">BATTLE ROYALE<br>❤️ Health: <span id="hp">100</span><br>🎯 Score: <span id="score">0</span></div>
-<div class="controls">
+<div id="info">
+<b>ATUL BATTLE ROYALE</b><br>
+❤️ Health: <span id="hp">100</span><br>
+🎯 Score: <span id="score">0</span><br>
+🔵 Zone: <span id="zoneText">100%</span><br>
+👥 Players: <span id="count">1</span>
+</div>
+<div id="mp">
+<b>🌐 ONLINE ROOM</b>
+<input id="name" maxlength="16" placeholder="Player name" value="Player">
+<button id="create">Create Room</button>
+<input id="roomCode" maxlength="5" placeholder="Room Code">
+<button id="join">Join Room</button>
+<div id="status" style="margin-top:8px;overflow-wrap:anywhere">Ready</div>
+</div>
+<canvas id="mini" width="100" height="100"></canvas>
+<div id="controls">
 <div id="pad">
 <span></span><button data-m="up">▲</button><span></span>
 <button data-m="left">◀</button><button data-m="down">▼</button><button data-m="right">▶</button>
 </div>
-<button id="shoot">FIRE</button>
+<button id="fire">FIRE</button>
 </div>
+
 <script>
-const c=document.getElementById('game'),ctx=c.getContext('2d');
-let w,h,px=0,py=0,hp=100,score=0,shots=[],enemies=[],keys={},last=0;
-function resize(){c.width=w=innerWidth;c.height=h=innerHeight;px=w/2;py=h/2}
-resize();addEventListener('resize',resize);
-function spawn(){enemies.push({x:Math.random()*w,y:Math.random()*h,r:15})}
-for(let i=0;i<5;i++)spawn();
-document.querySelectorAll('[data-m]').forEach(b=>{
-const k=b.dataset.m;
-b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true});
-['pointerup','pointercancel','pointerleave'].forEach(t=>b.addEventListener(t,()=>keys[k]=false));
-});
-function fire(){shots.push({x:px,y:py-12,dy:-7})}
-document.getElementById('shoot').addEventListener('pointerdown',e=>{e.preventDefault();fire()});
-function loop(t){
-let dt=Math.min((t-last)/16||1,2);last=t;
-if(keys.up)py-=3*dt;if(keys.down)py+=3*dt;
-if(keys.left)px-=3*dt;if(keys.right)px+=3*dt;
-px=Math.max(15,Math.min(w-15,px));py=Math.max(15,Math.min(h-15,py));
-ctx.fillStyle='#315b38';ctx.fillRect(0,0,w,h);
-ctx.strokeStyle='#426b47';for(let x=0;x<w;x+=45){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
-ctx.fillStyle='#4bb6ff';ctx.beginPath();ctx.arc(px,py,15,0,Math.PI*2);ctx.fill();
-ctx.fillStyle='#fff';ctx.fillRect(px-5,py-23,10,14);
-shots.forEach(s=>s.y+=s.dy*dt);
-shots=shots.filter(s=>s.y>-10);
-ctx.fillStyle='#ffdf66';shots.forEach(s=>ctx.fillRect(s.x-3,s.y-8,6,12));
-enemies.forEach(e=>{
-let dx=px-e.x,dy=py-e.y,d=Math.hypot(dx,dy)||1;
-e.x+=dx/d*.45*dt;e.y+=dy/d*.45*dt;
-ctx.fillStyle='#e74c3c';ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();
-if(d<25&&t%25<1)hp=Math.max(0,hp-1);
-});
-for(let i=enemies.length-1;i>=0;i--){
-let e=enemies[i],hit=shots.some(s=>Math.hypot(s.x-e.x,s.y-e.y)<e.r+5);
-if(hit){enemies.splice(i,1);shots=shots.filter(s=>Math.hypot(s.x-e.x,s.y-e.y)>=e.r+5);score++;spawn()}
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+const mini=document.getElementById('mini');
+const mctx=mini.getContext('2d');
+
+const WORLD=4000;
+const ZONE_START=1800;
+const ZONE_END=180;
+const SHRINK_MS=180000;
+const zoneEpoch=Math.floor(Date.now()/10000)*10000;
+
+let w=innerWidth,h=innerHeight;
+let px=WORLD/2,py=WORLD/2;
+let hp=100,score=0,last=performance.now(),lastDamage=0;
+let shots=[],enemies=[],keys={};
+let ws=null,myId=null,players={};
+
+function resize(){
+ w=innerWidth;h=innerHeight;
+ canvas.width=w;canvas.height=h;
 }
-document.getElementById('hp').textContent=hp;
-document.getElementById('score').textContent=score;
-if(hp>0)requestAnimationFrame(loop);
-else{ctx.fillStyle='white';ctx.font='32px Arial';ctx.fillText('GAME OVER',w/2-95,h/2)}
+resize();
+addEventListener('resize',resize);
+
+function rand(a,b){return a+Math.random()*(b-a)}
+
+const buildings=[];
+for(let i=0;i<36;i++){
+ const x=rand(150,WORLD-300),y=rand(150,WORLD-300);
+ if(Math.hypot(x-WORLD/2,y-WORLD/2)<300)continue;
+ buildings.push({x,y,w:rand(70,150),h:rand(60,120)});
+}
+
+const roads=[
+ {x:0,y:900,w:WORLD,h:100},
+ {x:0,y:2700,w:WORLD,h:110},
+ {x:1100,y:0,w:100,h:WORLD},
+ {x:2800,y:0,w:90,h:WORLD}
+];
+
+function spawnEnemy(){
+ enemies.push({x:rand(100,WORLD-100),y:rand(100,WORLD-100),r:14});
+}
+for(let i=0;i<12;i++)spawnEnemy();
+
+document.querySelectorAll('[data-m]').forEach(b=>{
+ const k=b.dataset.m;
+ b.addEventListener('pointerdown',e=>{
+  e.preventDefault();keys[k]=true;
+ });
+ ['pointerup','pointercancel','pointerleave'].forEach(t=>
+  b.addEventListener(t,()=>keys[k]=false));
+});
+
+function fire(){
+ if(hp<=0)return;
+ shots.push({x:px,y:py-20,dy:-9});
+}
+document.getElementById('fire').addEventListener('pointerdown',e=>{
+ e.preventDefault();fire();
+});
+
+function zoneRadius(){
+ const progress=Math.min(1,Math.max(0,(Date.now()-zoneEpoch)/SHRINK_MS));
+ return ZONE_START-(ZONE_START-ZONE_END)*progress;
+}
+
+function drawMap(camX,camY){
+ ctx.fillStyle='#c9ad75';
+ ctx.fillRect(0,0,WORLD,WORLD);
+
+ // रेगिस्तानी रेत
+ for(let i=0;i<230;i++){
+  const x=(i*7919)%WORLD,y=(i*104729)%WORLD;
+  ctx.fillStyle=i%2?'#b99b65':'#d4b981';
+  ctx.fillRect(x,y,4,3);
+ }
+
+ // सड़कें
+ roads.forEach(r=>{
+  ctx.fillStyle='#82775e';ctx.fillRect(r.x,r.y,r.w,r.h);
+  ctx.strokeStyle='#e0c995';ctx.lineWidth=3;ctx.setLineDash([22,18]);
+  ctx.beginPath();
+  if(r.w>r.h){
+   ctx.moveTo(r.x,r.y+r.h/2);ctx.lineTo(r.x+r.w,r.y+r.h/2);
+  }else{
+   ctx.moveTo(r.x+r.w/2,r.y);ctx.lineTo(r.x+r.w/2,r.y+r.h);
+  }
+  ctx.stroke();ctx.setLineDash([]);
+ });
+
+ // मिलिट्री बेस की बाड़
+ ctx.strokeStyle='#45473b';ctx.lineWidth=10;
+ ctx.strokeRect(1550,1450,900,800);
+ ctx.strokeStyle='#e2d8b4';ctx.lineWidth=2;
+ ctx.strokeRect(1550,1450,900,800);
+
+ // हैंगर और इमारतें
+ buildings.forEach((b,i)=>{
+  ctx.fillStyle='#786b50';
+  ctx.fillRect(b.x+5,b.y+7,b.w,b.h);
+  ctx.fillStyle=i%3===0?'#777b6b':'#9d987f';
+  ctx.fillRect(b.x,b.y,b.w,b.h);
+  ctx.fillStyle='#4d594b';
+  ctx.fillRect(b.x+8,b.y+8,b.w-16,10);
+  ctx.strokeStyle='#ded0a6';ctx.lineWidth=2;
+  ctx.strokeRect(b.x,b.y,b.w,b.h);
+ });
+
+ // मिलिट्री बेस के कंटेनर
+ for(let i=0;i<9;i++){
+  const x=1660+(i%3)*230,y=1600+Math.floor(i/3)*180;
+  ctx.fillStyle=i%2?'#5c6b4c':'#8a593e';
+  ctx.fillRect(x,y,130,65);
+  ctx.strokeStyle='#d4c29b';ctx.strokeRect(x,y,130,65);
+  for(let k=1;k<5;k++){
+   ctx.beginPath();ctx.moveTo(x+k*24,y);ctx.lineTo(x+k*24,y+65);ctx.stroke();
+  }
+ }
+}
+
+function drawZone(){
+ const r=zoneRadius(),cx=WORLD/2,cy=WORLD/2;
+ // सुरक्षित क्षेत्र के बाहर लाल रंग की परत
+ ctx.save();
+ ctx.fillStyle='rgba(180,35,25,0.25)';
+ ctx.beginPath();
+ ctx.rect(0,0,WORLD,WORLD);
+ ctx.arc(cx,cy,r,0,Math.PI*2,true);
+ ctx.fill('evenodd');
+ ctx.restore();
+
+ ctx.strokeStyle='#57caff';
+ ctx.lineWidth=12;
+ ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+ ctx.strokeStyle='#d9f5ff';ctx.lineWidth=3;
+ ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+
+ document.getElementById('zoneText').textContent=
+  Math.round(r/ZONE_START*100)+'%';
+}
+
+function drawPlayer(x,y,color,label){
+ ctx.fillStyle=color;
+ ctx.beginPath();ctx.arc(x,y,15,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#222';
+ ctx.fillRect(x-5,y-22,10,10);
+ ctx.fillStyle='white';
+ ctx.font='13px Arial';ctx.textAlign='center';
+ ctx.fillText(label||'Player',x,y-29);
+}
+
+function drawMini(){
+ mctx.fillStyle='#bda36d';mctx.fillRect(0,0,100,100);
+ mctx.fillStyle='#82775e';
+ mctx.fillRect(0,22,100,3);mctx.fillRect(27,0,3,100);
+ mctx.strokeStyle='#57caff';mctx.lineWidth=1.5;
+ mctx.beginPath();
+ mctx.arc(50,50,zoneRadius()/WORLD*100,0,Math.PI*2);
+ mctx.stroke();
+ mctx.fillStyle='#36a9ff';
+ mctx.fillRect(px/WORLD*100-2,py/WORLD*100-2,5,5);
+ for(const id in players){
+  if(id===myId)continue;
+  const p=players[id].state;if(!p)continue;
+  mctx.fillStyle='#ff684d';
+  mctx.fillRect(p.x*100-2,p.z*100-2,4,4);
+ }
+}
+
+function loop(t){
+ const dt=Math.min((t-last)/16||1,2);last=t;
+ if(hp>0){
+  if(keys.up)py-=4*dt;
+  if(keys.down)py+=4*dt;
+  if(keys.left)px-=4*dt;
+  if(keys.right)px+=4*dt;
+ }
+ px=Math.max(20,Math.min(WORLD-20,px));
+ py=Math.max(20,Math.min(WORLD-20,py));
+
+ const camX=Math.max(0,Math.min(WORLD-w,px-w/2));
+ const camY=Math.max(0,Math.min(WORLD-h,py-h/2));
+
+ ctx.clearRect(0,0,w,h);
+ ctx.save();
+ ctx.translate(-camX,-camY);
+ drawMap(camX,camY);
+ drawZone();
+
+ // गोली
+ shots.forEach(s=>s.y+=s.dy*dt);
+ shots=shots.filter(s=>s.y>0);
+ ctx.fillStyle='#ffe26a';
+ shots.forEach(s=>ctx.fillRect(s.x-3,s.y-8,6,12));
+
+ // दुश्मन
+ enemies.forEach(e=>{
+  const dx=px-e.x,dy=py-e.y,d=Math.hypot(dx,dy)||1;
+  e.x+=dx/d*.35*dt;e.y+=dy/d*.35*dt;
+  ctx.fillStyle='#b83d2c';
+  ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,Math.PI*2);ctx.fill();
+  if(d<28&&t-lastDamage>500){
+   hp=Math.max(0,hp-1);lastDamage=t;
+  }
+ });
+
+ for(let i=enemies.length-1;i>=0;i--){
+  const e=enemies[i];
+  const hit=shots.some(s=>Math.hypot(s.x-e.x,s.y-e.y)<e.r+5);
+  if(hit){
+   enemies.splice(i,1);
+   shots=shots.filter(s=>Math.hypot(s.x-e.x,s.y-e.y)>=e.r+5);
+   score++;spawnEnemy();
+  }
+ }
+
+ // Safe Zone से बाहर damage
+ const distance=Math.hypot(px-WORLD/2,py-WORLD/2);
+ if(distance>zoneRadius()&&t-lastDamage>900){
+  hp=Math.max(0,hp-2);lastDamage=t;
+ }
+
+ drawPlayer(px,py,'#28a9ff','YOU');
+
+ for(const id in players){
+  if(id===myId)continue;
+  const p=players[id].state;
+  if(!p)continue;
+  drawPlayer(p.x*WORLD,p.z*WORLD,'#ff684d',p.name||'Player');
+ }
+ ctx.restore();
+
+ document.getElementById('hp').textContent=hp;
+ document.getElementById('score').textContent=score;
+ document.getElementById('count').textContent=Object.keys(players).length||1;
+ drawMini();
+
+ if(hp>0)requestAnimationFrame(loop);
+ else{
+  ctx.fillStyle='#17130ddd';ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='white';ctx.textAlign='center';
+  ctx.font='bold 32px Arial';ctx.fillText('GAME OVER',w/2,h/2);
+  ctx.font='16px Arial';ctx.fillText('Refresh to play again',w/2,h/2+35);
+ }
 }
 requestAnimationFrame(loop);
+
+const status=document.getElementById('status');
+const nameInput=document.getElementById('name');
+const roomInput=document.getElementById('roomCode');
+
+function connect(action){
+ if(ws&&ws.readyState===WebSocket.OPEN){
+  sendAction(action);return;
+ }
+ status.textContent='Connecting...';
+ ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');
+
+ ws.onopen=()=>sendAction(action);
+ ws.onmessage=e=>{
+  let d;try{d=JSON.parse(e.data)}catch{return}
+  if(d.type==='room'||d.type==='joined'){
+   myId=d.id;
+   status.textContent='Room Code: '+d.code;
+  }else if(d.type==='snapshot'){
+   players=d.players||{};
+   document.getElementById('count').textContent=d.count||1;
+   if(d.code)status.textContent='Room: '+d.code+' | Players: '+d.count;
+  }else if(d.type==='error'){
+   status.textContent=d.message;
+  }
+ };
+ ws.onerror=()=>status.textContent='Connection error';
+ ws.onclose=()=>status.textContent='Disconnected';
+}
+
+function sendAction(type){
+ if(!ws||ws.readyState!==WebSocket.OPEN)return;
+ ws.send(JSON.stringify({
+  type,
+  name:nameInput.value.trim()||'Player',
+  code:roomInput.value.trim().toUpperCase()
+ }));
+}
+document.getElementById('create').onclick=()=>connect('create');
+document.getElementById('join').onclick=()=>{
+ if(!roomInput.value.trim()){
+  status.textContent='पहले Room Code डालो';return;
+ }
+ connect('join');
+};
+
+setInterval(()=>{
+ if(!ws||ws.readyState!==WebSocket.OPEN||!myId)return;
+ ws.send(JSON.stringify({
+  type:'state',
+  name:nameInput.value.trim()||'Player',
+  x:px/WORLD,
+  z:py/WORLD,
+  yaw:0,
+  hp
+ }));
+},100);
 </script>
-
-<script>
-(function () {
-  const panel = document.createElement('div');
-  panel.style.cssText =
-    'position:fixed;top:12px;right:10px;z-index:10;' +
-    'background:#10251fee;padding:12px;border-radius:12px;' +
-    'width:190px;color:white;font:14px Arial';
-
-  panel.innerHTML = `
-    <b>🌐 ONLINE MULTIPLAYER</b>
-    <input id="mpName" placeholder="अपना नाम"
-      maxlength="16" value="Player"
-      style="width:100%;padding:9px;margin-top:10px;box-sizing:border-box">
-    <button id="mpCreate"
-      style="width:100%;height:40px;border-radius:8px;margin-top:8px">
-      Create Room
-    </button>
-    <input id="mpCode" placeholder="Room Code"
-      maxlength="5"
-      style="width:100%;padding:9px;margin-top:8px;box-sizing:border-box">
-    <button id="mpJoin"
-      style="width:100%;height:40px;border-radius:8px;margin-top:8px">
-      Join Room
-    </button>
-    <div id="mpStatus" style="margin-top:10px;overflow-wrap:anywhere">
-      सर्वर से जुड़ने के लिए तैयार
-    </div>
-  `;
-
-  document.body.appendChild(panel);
-
-  const overlay = document.createElement('canvas');
-  overlay.style.cssText =
-    'position:fixed;inset:0;width:100%;height:100%;' +
-    'z-index:1;pointer-events:none';
-  overlay.width = innerWidth;
-  overlay.height = innerHeight;
-  document.body.appendChild(overlay);
-
-  const ctx = overlay.getContext('2d');
-  const status = document.getElementById('mpStatus');
-  const name = document.getElementById('mpName');
-  let ws = null;
-  let myId = null;
-  let players = {};
-
-  document.querySelector('#info').style.zIndex = 3;
-  document.querySelector('.controls').style.zIndex = 3;
-
-  function connect(action) {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      sendAction(action);
-      return;
-    }
-
-    status.textContent = 'सर्वर से जुड़ रहे हैं...';
-    ws = new WebSocket(
-      (location.protocol === 'https:' ? 'wss://' : 'ws://') +
-      location.host + '/ws'
-    );
-
-    ws.onopen = () => sendAction(action);
-
-    ws.onmessage = event => {
-      let data;
-      try { data = JSON.parse(event.data); } catch { return; }
-
-      if (data.type === 'room' || data.type === 'joined') {
-        myId = data.id;
-        status.textContent = 'Room Code: ' + data.code;
-      } else if (data.type === 'snapshot') {
-        players = data.players || {};
-        if (data.code) {
-          status.textContent =
-            'Room: ' + data.code + ' | खिलाड़ी: ' + data.count;
-        }
-      } else if (data.type === 'error') {
-        status.textContent = data.message;
-      }
-    };
-
-    ws.onerror = () => {
-      status.textContent = 'कनेक्शन में समस्या। दोबारा कोशिश करो।';
-    };
-
-    ws.onclose = () => {
-      status.textContent = 'सर्वर से कनेक्शन बंद हो गया।';
-    };
-  }
-
-  function sendAction(action) {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
-    const playerName = name.value.trim() || 'Player';
-    ws.send(JSON.stringify({
-      type: action,
-      name: playerName,
-      code: document.getElementById('mpCode').value.trim().toUpperCase()
-    }));
-  }
-
-  document.getElementById('mpCreate').onclick = () => connect('create');
-  document.getElementById('mpJoin').onclick = () => {
-    if (!document.getElementById('mpCode').value.trim()) {
-      status.textContent = 'पहले Room Code डालो।';
-      return;
-    }
-    connect('join');
-  };
-
-  setInterval(() => {
-    if (!ws || ws.readyState !== WebSocket.OPEN || !myId) return;
-
-    const gameCanvas = document.getElementById('game');
-    const gameWidth = gameCanvas.width;
-    const gameHeight = gameCanvas.height;
-
-    ws.send(JSON.stringify({
-      type: 'state',
-      name: name.value.trim() || 'Player',
-      x: px / gameWidth,
-      z: py / gameHeight,
-      yaw: 0,
-      hp: hp
-    }));
-  }, 100);
-
-  function drawPlayers() {
-    if (overlay.width !== innerWidth || overlay.height !== innerHeight) {
-      overlay.width = innerWidth;
-      overlay.height = innerHeight;
-    }
-
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
-
-    for (const id in players) {
-      if (id === myId) continue;
-      const p = players[id];
-      if (!p || !p.state) continue;
-
-      const x = p.state.x * overlay.width;
-      const y = p.state.z * overlay.height;
-
-      ctx.fillStyle = '#ff8c42';
-      ctx.beginPath();
-      ctx.arc(x, y, 16, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = 'white';
-      ctx.font = '14px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(p.state.name || 'Player', x, y - 22);
-    }
-
-    requestAnimationFrame(drawPlayers);
-  }
-
-  drawPlayers();
-})();
-</script>
-</body>
-</html>
-
 </body>
 </html>
