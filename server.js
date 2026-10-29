@@ -6,7 +6,7 @@ const WebSocket = require('ws');
 const PORT = process.env.PORT || 3000;
 // Configure this according to your hosting plan. No finite server has literally unlimited capacity.
 const MAX_PLAYERS_PER_ROOM = Number(process.env.MAX_PLAYERS_PER_ROOM || 100);
-const publicDir = path.join(__dirname, 'public');
+const const publicDir = __dirname;
 const rooms = new Map();
 const sockets = new Map();
 
