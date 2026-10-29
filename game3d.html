@@ -370,7 +370,7 @@ fireBtn.addEventListener("pointerdown", (event) => {playGunshot();
     const hits = raycaster.intersectObjects(hitMeshes);
 
     if (hits.length > 0 && hits[0].distance < closestHit) {
-      closestHit = hits[0].distance;
+     closestHit = hits[0].distance;
       hitBot = bot;
     }
   });
