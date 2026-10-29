@@ -313,34 +313,42 @@ async function enableLandscape() {
 }
 
 document.addEventListener("pointerdown", enableLandscape, { once: true });
-// Mobile FIRE button shooting
+// Aim-based mobile shooting
 const fireBtn = document.getElementById("fireBtn");
+const raycaster = new THREE.Raycaster();
+const aimDirection = new THREE.Vector3();
 
 fireBtn.addEventListener("pointerdown", (event) => {
   event.preventDefault();
 
   if (enemyBots.length === 0) return;
 
-  let nearestBot = null;
-  let nearestDistance = Infinity;
+  camera.getWorldDirection(aimDirection);
+  raycaster.set(camera.position, aimDirection);
+  raycaster.far = 60;
+
+  let hitBot = null;
+  let closestHit = Infinity;
 
   enemyBots.forEach((bot) => {
-    const distance = bot.position.distanceTo(
-      camera.position
-    );
+    const hitMeshes = [];
+    bot.traverse((child) => {
+      if (child.isMesh) hitMeshes.push(child);
+    });
 
-    if (distance < nearestDistance) {
-      nearestDistance = distance;
-      nearestBot = bot;
+    const hits = raycaster.intersectObjects(hitMeshes);
+
+    if (hits.length > 0 && hits[0].distance < closestHit) {
+      closestHit = hits[0].distance;
+      hitBot = bot;
     }
   });
 
-    if (nearestBot && nearestDistance < 30) {
-    scene.remove(nearestBot);
-    enemyBots.splice(enemyBots.indexOf(nearestBot), 1);
+  if (hitBot) {
+    scene.remove(hitBot);
+    enemyBots.splice(enemyBots.indexOf(hitBot), 1);
   }
 });
-</script>
 
 <button id="fireBtn" style="position:fixed;right:25px;bottom:35px;width:85px;height:85px;border-radius:50%;background:red;color:white;font-size:20px;font-weight:bold;border:3px solid white;z-index:99999;">FIRE</button>
 
