@@ -151,8 +151,10 @@ setupStick('aimStick','aimKnob',(x,y,screenX,screenY)=>{
  }
 },()=>{});
 
+
 function fire(){
  if(hp<=0)return;
+
  const speed=13;
  shots.push({
   x:px+Math.cos(aimAngle)*22,
@@ -161,7 +163,16 @@ function fire(){
   vy:Math.sin(aimAngle)*speed,
   life:100
  });
+
+ // सर्वर को गोली चलाने का संदेश
+ if(ws && ws.readyState===WebSocket.OPEN && myId){
+  ws.send(JSON.stringify({
+   type:'fire',
+   yaw:aimAngle
+  }));
+ }
 }
+
 document.getElementById('fire2').addEventListener('pointerdown',e=>{
  e.preventDefault();
  fire();
