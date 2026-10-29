@@ -274,6 +274,18 @@ addEventListener('resize',()=>{
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);
 });
+// Landscape mode for mobile gameplay
+async function enableLandscape() {
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      await screen.orientation.lock("landscape");
+    }
+  } catch (error) {
+    console.log("Landscape lock browser द्वारा समर्थित नहीं है");
+  }
+}
+
+document.addEventListener("pointerdown", enableLandscape, { once: true });
 </script>
 </body>
 </html>
