@@ -1,0 +1,13 @@
+{
+  "name": "atul-battle-royale-scalable",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Room-code multiplayer browser game prototype",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
