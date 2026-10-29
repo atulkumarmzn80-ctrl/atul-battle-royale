@@ -118,7 +118,7 @@ wss.on('connection', ws => {
   }
 
   broadcast(room);
-} );
+
       }
     }
   });
